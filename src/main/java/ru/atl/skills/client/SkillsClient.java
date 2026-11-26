@@ -8,6 +8,10 @@ import java.util.Queue;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -31,6 +35,7 @@ public final class SkillsClient {
     private static Player previousPlayer;
     private static Notice notice;
     private static long noticeUntil;
+    private static long noticeStart;
     private record Notice(Rules.Skill skill, int level) {}
 
     private SkillsClient() {}
@@ -60,7 +65,9 @@ public final class SkillsClient {
         if (notice != null && now >= noticeUntil) notice = null;
         if (notice == null && !QUEUE.isEmpty()) {
             notice = QUEUE.remove();
+            noticeStart = now;
             noticeUntil = now + 4_000_000_000L;
+            mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
         }
     }
 
@@ -73,27 +80,27 @@ public final class SkillsClient {
         event.getToolTip().add(Component.literal("Требуется: " + req.skill().label + " — ур. " + req.level()).withStyle(color));
     }
 
-    static ItemStack icon(Rules.Skill skill) {
-        return new ItemStack(switch (skill) {
-            case PICKAXE -> Items.IRON_PICKAXE;
-            case AXE -> Items.IRON_AXE;
-            case SHOVEL -> Items.IRON_SHOVEL;
-            case HOE -> Items.IRON_HOE;
-            case SWORD -> Items.IRON_SWORD;
-        });
+    static ItemStack icon(Rules.Skill skill, int level) {
+        String material = level >= 50 ? "netherite" : level >= 30 ? "diamond" : level >= 20 ? "golden" : level >= 15 ? "iron" : level >= 10 ? "copper" : level >= 5 ? "stone" : "wooden";
+        return new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.fromNamespaceAndPath("minecraft", material + "_" + skill.suffix)));
     }
 
     @SubscribeEvent public static void hud(RenderGuiEvent.Post event) {
         if (notice == null || Minecraft.getInstance().player == null) return;
         GuiGraphicsExtractor g = event.getGuiGraphics();
-        int w = Math.min(240, g.guiWidth() - 12), x = (g.guiWidth() - w) / 2, y = 12;
+        int w = Math.min(240, g.guiWidth() - 12), x = (g.guiWidth() - w) / 2;
+        long now = System.nanoTime();
+        double progress = Math.min(1.0, Math.min((now - noticeStart) / 450_000_000.0, (noticeUntil - now) / 450_000_000.0));
+        progress = Math.max(0.0, progress);
+        progress = progress * progress * (3.0 - 2.0 * progress);
+        int y = (int)Math.round(-40 + 52 * progress);
         if (w < 100) return;
         g.nextStratum();
         g.fill(x - 1, y - 1, x + w + 1, y + 39, 0xFF7759D8);
         g.fill(x, y, x + w, y + 38, 0xF31C192D);
         g.fill(x, y, x + 3, y + 38, 0xFFAD8CFF);
         g.fill(x + 9, y + 9, x + 29, y + 29, 0xFF342752);
-        g.item(icon(notice.skill()), x + 11, y + 11);
+        g.item(icon(notice.skill(), notice.level()), x + 11, y + 11);
         g.text(Minecraft.getInstance().font, "НОВЫЙ УРОВЕНЬ", x + 36, y + 7, 0xFFBCA4FF, false);
         g.text(Minecraft.getInstance().font, notice.skill().label + " · уровень " + notice.level(), x + 36, y + 21, 0xFFFFFFFF, false);
     }
