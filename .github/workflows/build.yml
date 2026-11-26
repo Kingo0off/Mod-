@@ -28,11 +28,11 @@ jobs:
       - name: Опубликовать тестовую версию
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.0-beta.1
-          name: ATL Skills 0.1.0 — тестовая версия
+          tag_name: v0.2.0-beta.1
+          name: ATL Skills 0.2.0 — тестовая версия
           prerelease: true
           body: |
-            Первая тестовая версия для Minecraft 26.3 и NeoForge.
+            Тестовая версия с меню навыков, уведомлениями и подсказками предметов для Minecraft 26.3 и NeoForge.
             Проверено: компиляция и автоматические тесты уровней. Работу в игре и на сервере ещё нужно проверить.
             Перед испытанием сделайте резервную копию мира.
           files: build/libs/atl-skills-*.jar

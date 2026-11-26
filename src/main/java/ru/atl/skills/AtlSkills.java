@@ -7,6 +7,7 @@ import java.util.function.Supplier;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
@@ -19,6 +20,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockDropsEvent;
 import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
@@ -32,11 +34,14 @@ public final class AtlSkills {
     private static final Map<Rules.Skill, Supplier<AttachmentType<Integer>>> XP = new EnumMap<>(Rules.Skill.class);
     static {
         for (Rules.Skill skill : Rules.Skill.values()) {
-            XP.put(skill, DATA.register(skill.suffix + "_xp", () -> AttachmentType.builder(() -> 0).serialize(Codec.INT.fieldOf("xp")).copyOnDeath().build()));
+            XP.put(skill, DATA.register(skill.suffix + "_xp", () -> AttachmentType.builder(() -> 0).serialize(Codec.INT.fieldOf("xp")).copyOnDeath().sync((holder, to) -> holder == to, ByteBufCodecs.VAR_INT).build()));
         }
     }
     public AtlSkills(IEventBus bus) { DATA.register(bus); NeoForge.EVENT_BUS.register(this); }
-    private static Rules.Requirement requirement(ItemStack stack) {
+    public static Integer skillXp(Player player, Rules.Skill skill) {
+        return player.getExistingDataOrNull(XP.get(skill));
+    }
+    public static Rules.Requirement requirement(ItemStack stack) {
         return stack.isEmpty() ? null : Rules.requirement(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
     }
     public static boolean allowed(Player player, ItemStack stack, boolean notify) {
@@ -48,10 +53,9 @@ public final class AtlSkills {
     }
     private static void gain(ServerPlayer player, Rules.Skill skill, int amount) {
         if (player.isCreative() || player.isSpectator()) return;
-        var key = XP.get(skill); int oldXp = player.getData(key); int oldLevel = Rules.level(oldXp);
+        var key = XP.get(skill); int oldXp = player.getData(key);
         int next = Math.min(Rules.threshold(50), oldXp + amount); player.setData(key, next);
-        int newLevel = Rules.level(next);
-        if (newLevel > oldLevel) player.sendSystemMessage(Component.literal("Навык «" + skill.label + "»: уровень " + newLevel + "!"));
+
     }
     @SubscribeEvent public void blockBreak(BreakBlockEvent event) {
         if (event.getPlayer() instanceof ServerPlayer p && !allowed(p, p.getMainHandItem(), true)) {
@@ -77,10 +81,15 @@ public final class AtlSkills {
     @SubscribeEvent public void useItem(PlayerInteractEvent.RightClickItem event) {
         if (event.getEntity() instanceof ServerPlayer p && !allowed(p, event.getItemStack(), true)) event.setCanceled(true);
     }
+    @SubscribeEvent public void login(PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof ServerPlayer p) {
+            for (Rules.Skill skill : Rules.Skill.values()) { p.getData(XP.get(skill)); p.syncData(XP.get(skill)); }
+        }
+    }
     @SubscribeEvent public void commands(RegisterCommandsEvent event) {
         event.getDispatcher().register(Commands.literal("skills").executes(ctx -> {
             ServerPlayer p = ctx.getSource().getPlayerOrException();
-            p.sendSystemMessage(Component.literal("Навыки ATL:"));
+            p.sendSystemMessage(Component.literal("Навыки ATL — красивое меню открывается клавишей K:"));
             for (Rules.Skill skill : Rules.Skill.values()) {
                 int xp = p.getData(XP.get(skill)); int level = Rules.level(xp);
                 String progress = level == 50 ? "максимум" : (xp - Rules.threshold(level)) + "/" + (Rules.threshold(level + 1) - Rules.threshold(level));
