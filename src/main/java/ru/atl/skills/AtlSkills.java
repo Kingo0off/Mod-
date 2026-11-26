@@ -18,7 +18,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
-import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
@@ -54,7 +54,7 @@ public final class AtlSkills {
     private static void gain(ServerPlayer player, Rules.Skill skill, int amount) {
         if (player.isCreative() || player.isSpectator()) return;
         var key = XP.get(skill); int oldXp = player.getData(key);
-        int next = Math.min(Rules.threshold(50), oldXp + amount); player.setData(key, next);
+        int next = (int)Math.min(Rules.threshold(50), (long)oldXp + amount); player.setData(key, next);
 
     }
     @SubscribeEvent public void blockBreak(BreakBlockEvent event) {
@@ -70,10 +70,15 @@ public final class AtlSkills {
     @SubscribeEvent public void attack(AttackEntityEvent event) {
         if (event.getEntity() instanceof ServerPlayer p && !allowed(p, p.getMainHandItem(), true)) event.setCanceled(true);
     }
-    @SubscribeEvent public void hit(LivingDamageEvent.Post event) {
-        if (!(event.getSource().getEntity() instanceof ServerPlayer p) || !(event.getEntity() instanceof Mob) || event.getHealthDamage() <= 0) return;
+    @SubscribeEvent public void mobDefeated(LivingDeathEvent event) {
+        if (event.isCanceled() || !(event.getEntity() instanceof Mob mob)
+                || !(event.getSource().getEntity() instanceof ServerPlayer p)
+                || event.getSource().getDirectEntity() != p) return;
         Rules.Requirement r = requirement(p.getMainHandItem());
-        if (r != null && (r.skill() == Rules.Skill.SWORD || r.skill() == Rules.Skill.AXE) && allowed(p, p.getMainHandItem(), false)) gain(p, r.skill(), 10);
+        if (r != null && (r.skill() == Rules.Skill.SWORD || r.skill() == Rules.Skill.AXE)
+                && allowed(p, p.getMainHandItem(), false)) {
+            gain(p, r.skill(), Rules.mobXp(mob.getMaxHealth()));
+        }
     }
     @SubscribeEvent public void useBlock(PlayerInteractEvent.RightClickBlock event) {
         if (event.getEntity() instanceof ServerPlayer p && !allowed(p, event.getItemStack(), true)) event.setCanceled(true);
