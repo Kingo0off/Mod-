@@ -6,6 +6,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -17,9 +18,11 @@ public final class EnchantChoices {
         if (item.isEmpty() || item.getCount() != 1) return false;
         String enchantId = enchantment.unwrapKey().map(key -> key.identifier().toString()).orElse("");
         String itemId = BuiltInRegistries.ITEM.getKey(item.getItem()).toString();
-        if (!VanillaEnchantments.allows(enchantId, itemId)
-                || !item.supportsEnchantment(enchantment)
-                || !enchantment.value().isSupportedItem(item)) return false;
+        if (!VanillaEnchantments.allows(enchantId, itemId) || enchantment.is(EnchantmentTags.CURSE)) return false;
+        boolean standardProtection = VanillaEnchantments.vanillaArmorProtection(enchantId, itemId)
+                && EnchantProgress.isArmor(item);
+        if (!standardProtection && (!item.supportsEnchantment(enchantment)
+                || !enchantment.value().isSupportedItem(item))) return false;
         ItemEnchantments enchants = item.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
         if (enchants.getLevel(enchantment) != 0) return false;
         return enchants.keySet().stream().allMatch(old -> Enchantment.areCompatible(old, enchantment));
@@ -28,7 +31,8 @@ public final class EnchantChoices {
         if (item.isEmpty()) return List.of();
         return player.level().registryAccess().lookupOrThrow(Registries.ENCHANTMENT).listElements()
                 .filter(holder -> eligible(item, holder))
-                .sorted(Comparator.comparing(holder -> holder.key().identifier().toString()))
+                .sorted(Comparator.<net.minecraft.core.Holder.Reference<Enchantment>>comparingInt(holder -> VanillaEnchantments.isProtection(holder.key().identifier().toString()) ? 0 : 1)
+                        .thenComparing(holder -> holder.key().identifier().toString()))
                 .map(holder -> (Holder<Enchantment>)holder).toList();
     }
 }

@@ -4,6 +4,8 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
@@ -12,7 +14,13 @@ import net.minecraft.world.item.enchantment.ItemEnchantments;
 public final class EnchantProgress {
     private static final String KEY = "atl_skills:enchant_progress";
     private EnchantProgress() {}
-    public static int cost(int level) { return EnchantMath.cost(level); }
+    public static boolean isArmor(ItemStack stack) {
+        var equippable = stack.get(DataComponents.EQUIPPABLE);
+        if (equippable == null || !stack.isDamageableItem() || stack.is(Items.ELYTRA)) return false;
+        var slot = equippable.slot();
+        return slot == EquipmentSlot.HEAD || slot == EquipmentSlot.CHEST || slot == EquipmentSlot.LEGS || slot == EquipmentSlot.FEET;
+    }
+    public static int cost(ItemStack stack, int level) { return EnchantMath.cost(level, isArmor(stack)); }
     private static String id(Holder<Enchantment> enchantment) {
         return enchantment.unwrapKey().map(key -> key.identifier().toString()).orElse("");
     }
@@ -33,7 +41,7 @@ public final class EnchantProgress {
             String id = id(enchantment);
             int level = existing.getLevel(enchantment);
             if (id.isEmpty() || level < 1 || level >= enchantment.value().getMaxLevel()) continue;
-            EnchantMath.Advance next = EnchantMath.advance(level, enchantment.value().getMaxLevel(), progress.getIntOr(id, 0));
+            EnchantMath.Advance next = EnchantMath.advance(level, enchantment.value().getMaxLevel(), progress.getIntOr(id, 0), isArmor(stack));
             if (next.level() != level) changed.set(enchantment, next.level());
             progress.putInt(id, next.experience());
             updated = true;

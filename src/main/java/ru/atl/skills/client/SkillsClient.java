@@ -89,7 +89,7 @@ public final class SkillsClient {
         for (var enchantment : enchants.keySet()) {
             int level = enchants.getLevel(enchantment);
             if (level >= enchantment.value().getMaxLevel()) continue;
-            int cost = EnchantProgress.cost(level);
+            int cost = EnchantProgress.cost(stack, level);
             int xp = Math.max(0, Math.min(cost, EnchantProgress.experience(stack, enchantment)));
             int filled = Math.min(10, xp * 10 / cost);
             event.getToolTip().add(Enchantment.getFullname(enchantment, level).copy()
