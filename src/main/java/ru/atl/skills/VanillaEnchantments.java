@@ -19,6 +19,9 @@ public final class VanillaEnchantments {
         return "minecraft:protection".equals(enchantId) || "minecraft:fire_protection".equals(enchantId)
             || "minecraft:blast_protection".equals(enchantId) || "minecraft:projectile_protection".equals(enchantId);
     }
+    public static int priority(String enchantId) {
+        return "minecraft:protection".equals(enchantId) ? 0 : isProtection(enchantId) ? 1 : 2;
+    }
     public static boolean vanillaArmorProtection(String enchantId, String itemId) {
         if (!isProtection(enchantId) || itemId == null || !itemId.startsWith("minecraft:")) return false;
         return itemId.endsWith("_helmet") || itemId.endsWith("_chestplate")

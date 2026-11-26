@@ -31,7 +31,7 @@ public final class EnchantChoices {
         if (item.isEmpty()) return List.of();
         return player.level().registryAccess().lookupOrThrow(Registries.ENCHANTMENT).listElements()
                 .filter(holder -> eligible(item, holder))
-                .sorted(Comparator.<net.minecraft.core.Holder.Reference<Enchantment>>comparingInt(holder -> VanillaEnchantments.isProtection(holder.key().identifier().toString()) ? 0 : 1)
+                .sorted(Comparator.<net.minecraft.core.Holder.Reference<Enchantment>>comparingInt(holder -> VanillaEnchantments.priority(holder.key().identifier().toString()))
                         .thenComparing(holder -> holder.key().identifier().toString()))
                 .map(holder -> (Holder<Enchantment>)holder).toList();
     }

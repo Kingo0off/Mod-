@@ -17,6 +17,8 @@ class VanillaEnchantmentsTest {
             assertTrue(VanillaEnchantments.vanillaArmorProtection("minecraft:projectile_protection", armor));
         }
         assertFalse(VanillaEnchantments.vanillaArmorProtection("minecraft:protection", "minecraft:diamond_pickaxe"));
+        assertTrue(VanillaEnchantments.priority("minecraft:protection") < VanillaEnchantments.priority("minecraft:fire_protection"));
+        assertTrue(VanillaEnchantments.priority("minecraft:fire_protection") < VanillaEnchantments.priority("minecraft:unbreaking"));
         assertFalse(VanillaEnchantments.allows("minecraft:binding_curse", "minecraft:diamond_chestplate"));
         assertFalse(VanillaEnchantments.allows("minecraft:vanishing_curse", "minecraft:diamond_pickaxe"));
     }
