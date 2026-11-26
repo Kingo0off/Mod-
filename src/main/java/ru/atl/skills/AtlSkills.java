@@ -5,6 +5,7 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.Supplier;
 import net.minecraft.ChatFormatting;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import java.util.WeakHashMap;
@@ -59,7 +60,7 @@ public final class AtlSkills {
             if (now - LAST_WARNING.getOrDefault(sp, 0L) >= 1_000_000_000L) {
                 LAST_WARNING.put(sp, now);
                 sp.sendOverlayMessage(Component.literal("Нужен уровень «" + req.skill().label + "»: " + req.level()).withStyle(ChatFormatting.RED));
-                sp.playNotifySound(SoundEvents.UI_BUTTON_CLICK, SoundSource.PLAYERS, 0.7F, 0.7F);
+                sp.connection.send(new ClientboundSoundPacket(SoundEvents.UI_BUTTON_CLICK, SoundSource.PLAYERS, sp.getX(), sp.getY(), sp.getZ(), 0.7F, 0.7F, sp.getRandom().nextLong()));
             }
         }
         return false;
