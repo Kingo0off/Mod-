@@ -1,6 +1,9 @@
 package ru.atl.skills.client;
 
 import java.util.List;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.EnchantmentScreen;
@@ -56,12 +59,14 @@ public final class EnchantPanel {
     @SubscribeEvent public static void click(ScreenEvent.MouseButtonPressed.Pre event) {
         if (!(event.getScreen() instanceof EnchantmentScreen s) || !inside(s, event.getMouseX(), event.getMouseY())) return;
         event.setCanceled(true);
-        if (event.getButton() != 0) return;
+        if (event.getButton() != InputConstants.MOUSE_BUTTON_LEFT) return;
         var options = choices(s);
         int index = offset + (int)(event.getMouseY() - y(s)) / 19;
         if (index < 0 || index >= options.size()) return;
-        options.get(index).unwrapKey().ifPresent(key ->
-            ClientPacketDistributor.sendToServer(new ChooseEnchant(s.getMenu().containerId, key.identifier().toString())));
+        options.get(index).unwrapKey().ifPresent(key -> {
+            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+            ClientPacketDistributor.sendToServer(new ChooseEnchant(s.getMenu().containerId, key.identifier().toString()));
+        });
     }
     @SubscribeEvent public static void scroll(ScreenEvent.MouseScrolled.Pre event) {
         if (!(event.getScreen() instanceof EnchantmentScreen s) || !inside(s, event.getMouseX(), event.getMouseY())) return;

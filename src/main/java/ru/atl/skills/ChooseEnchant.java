@@ -2,6 +2,8 @@ package ru.atl.skills;
 
 import io.netty.buffer.ByteBuf;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -41,8 +43,14 @@ public record ChooseEnchant(int containerId, String enchantment) implements Cust
         ItemStack item = menu.getSlot(0).getItem();
         ItemStack lapis = menu.getSlot(1).getItem();
         boolean creative = player.getAbilities().instabuild;
-        if (!EnchantChoices.eligible(item, holder)) return;
-        if (!creative && (player.experienceLevel < 1 || !lapis.is(Items.LAPIS_LAZULI) || lapis.getCount() < 1)) return;
+        if (!EnchantChoices.eligible(item, holder)) {
+            player.sendOverlayMessage(Component.literal("Это зачарование не подходит предмету").withStyle(ChatFormatting.RED));
+            return;
+        }
+        if (!creative && (player.experienceLevel < 1 || !lapis.is(Items.LAPIS_LAZULI) || lapis.getCount() < 1)) {
+            player.sendOverlayMessage(Component.literal("Нужны 1 уровень опыта и 1 лазурит").withStyle(ChatFormatting.RED));
+            return;
+        }
         item.enchant(holder, 1);
         player.onEnchantmentPerformed(item, 1);
         if (!creative) { lapis.shrink(1); menu.getSlot(1).setChanged(); }
