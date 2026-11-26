@@ -55,7 +55,7 @@ public final class SkillsClient {
         for (Rules.Skill skill : Rules.Skill.values()) {
             Integer xp = AtlSkills.skillXp(player, skill);
             if (xp == null) continue;
-            int level = Rules.level(xp);
+            int level = Rules.level(skill, xp);
             Integer old = LAST.put(skill, level);
             if (old != null && level > old) {
                 if (QUEUE.size() < 10) QUEUE.add(new Notice(skill, level));
@@ -76,7 +76,7 @@ public final class SkillsClient {
         if (req == null) return;
         Player p = event.getEntity();
         Integer xp = p == null ? null : AtlSkills.skillXp(p, req.skill());
-        ChatFormatting color = xp == null ? ChatFormatting.GRAY : Rules.level(xp) >= req.level() ? ChatFormatting.GREEN : ChatFormatting.RED;
+        ChatFormatting color = xp == null ? ChatFormatting.GRAY : Rules.level(req.skill(), xp) >= req.level() ? ChatFormatting.GREEN : ChatFormatting.RED;
         event.getToolTip().add(Component.literal("Требуется: " + req.skill().label + " — ур. " + req.level()).withStyle(color));
     }
 

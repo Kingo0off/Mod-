@@ -10,6 +10,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.IEventBus;
@@ -32,6 +33,8 @@ public final class AtlSkills {
     public static final String ID = "atl_skills";
     private static final DeferredRegister<AttachmentType<?>> DATA = DeferredRegister.create(NeoForgeRegistries.Keys.ATTACHMENT_TYPES, ID);
     private static final Map<Rules.Skill, Supplier<AttachmentType<Integer>>> XP = new EnumMap<>(Rules.Skill.class);
+    private static final Supplier<AttachmentType<Integer>> BALANCE_VERSION = DATA.register("balance_version",
+        () -> AttachmentType.builder(() -> 0).serialize(Codec.INT.fieldOf("version")).copyOnDeath().build());
     static {
         for (Rules.Skill skill : Rules.Skill.values()) {
             XP.put(skill, DATA.register(skill.suffix + "_xp", () -> AttachmentType.builder(() -> 0).serialize(Codec.INT.fieldOf("xp")).copyOnDeath().sync((holder, to) -> holder == to, ByteBufCodecs.VAR_INT).build()));
@@ -47,14 +50,14 @@ public final class AtlSkills {
     public static boolean allowed(Player player, ItemStack stack, boolean notify) {
         if (!(player instanceof ServerPlayer sp) || player.isCreative() || player.isSpectator()) return true;
         Rules.Requirement req = requirement(stack);
-        if (req == null || Rules.level(sp.getData(XP.get(req.skill()))) >= req.level()) return true;
+        if (req == null || Rules.level(req.skill(), sp.getData(XP.get(req.skill()))) >= req.level()) return true;
         if (notify) sp.sendSystemMessage(Component.literal("Нужен уровень «" + req.skill().label + "» " + req.level() + ". Посмотреть навыки: /skills"));
         return false;
     }
     private static void gain(ServerPlayer player, Rules.Skill skill, int amount) {
         if (player.isCreative() || player.isSpectator()) return;
         var key = XP.get(skill); int oldXp = player.getData(key);
-        int next = (int)Math.min(Rules.threshold(50), (long)oldXp + amount); player.setData(key, next);
+        int next = (int)Math.min(Rules.threshold(skill, 50), (long)oldXp + amount); player.setData(key, next);
 
     }
     @SubscribeEvent public void blockBreak(BreakBlockEvent event) {
@@ -65,7 +68,19 @@ public final class AtlSkills {
     @SubscribeEvent public void blockDrops(BlockDropsEvent event) {
         if (!(event.getBreaker() instanceof ServerPlayer p) || event.isCanceled()) return;
         Rules.Requirement r = requirement(event.getTool());
-        if (r != null && r.skill() != Rules.Skill.SWORD && allowed(p, event.getTool(), false)) gain(p, r.skill(), 10);
+        if (r == null || !allowed(p, event.getTool(), false)) return;
+        boolean suitable = switch (r.skill()) {
+            case PICKAXE -> true;
+            case AXE -> event.getState().is(BlockTags.MINEABLE_WITH_AXE);
+            case SHOVEL -> event.getState().is(BlockTags.MINEABLE_WITH_SHOVEL);
+            case HOE -> event.getState().is(BlockTags.MINEABLE_WITH_HOE);
+            default -> false;
+        };
+        if (suitable) {
+            int amount = r.skill() == Rules.Skill.PICKAXE
+                    ? Rules.pickaxeXp(BuiltInRegistries.BLOCK.getKey(event.getState().getBlock()).toString()) : 1;
+            gain(p, r.skill(), amount);
+        }
     }
     @SubscribeEvent public void attack(AttackEntityEvent event) {
         if (event.getEntity() instanceof ServerPlayer p && !allowed(p, p.getMainHandItem(), true)) event.setCanceled(true);
@@ -88,6 +103,13 @@ public final class AtlSkills {
     }
     @SubscribeEvent public void login(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer p) {
+            if (p.getData(BALANCE_VERSION) == 0) {
+                for (Rules.Skill skill : Rules.Skill.values()) {
+                    var key = XP.get(skill);
+                    p.setData(key, Rules.migrate(skill, p.getData(key)));
+                }
+                p.setData(BALANCE_VERSION, 1);
+            }
             for (Rules.Skill skill : Rules.Skill.values()) { p.getData(XP.get(skill)); p.syncData(XP.get(skill)); }
         }
     }
@@ -96,8 +118,8 @@ public final class AtlSkills {
             ServerPlayer p = ctx.getSource().getPlayerOrException();
             p.sendSystemMessage(Component.literal("Навыки ATL — красивое меню открывается клавишей K:"));
             for (Rules.Skill skill : Rules.Skill.values()) {
-                int xp = p.getData(XP.get(skill)); int level = Rules.level(xp);
-                String progress = level == 50 ? "максимум" : (xp - Rules.threshold(level)) + "/" + (Rules.threshold(level + 1) - Rules.threshold(level));
+                int xp = p.getData(XP.get(skill)); int level = Rules.level(skill, xp);
+                String progress = level == 50 ? "максимум" : (xp - Rules.threshold(skill, level)) + "/" + (Rules.threshold(skill, level + 1) - Rules.threshold(skill, level));
                 p.sendSystemMessage(Component.literal(skill.label + ": " + level + " (" + progress + ")"));
             }
             return 1;

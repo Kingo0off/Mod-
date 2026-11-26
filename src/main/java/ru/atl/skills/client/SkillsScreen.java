@@ -35,19 +35,19 @@ public final class SkillsScreen extends Screen {
             g.fill(x + 10, top, x + 13, top + rowH - 3, 0xFF8C6BE4);
             Integer xp = p == null ? null : AtlSkills.skillXp(p, skill);
             int textX = x + 41, right = x + w - 19;
-            int level = xp == null ? 1 : Rules.level(xp);
+            int level = xp == null ? 1 : Rules.level(skill, xp);
             g.item(SkillsClient.icon(skill, level), x + 17, top + (rowH - 19) / 2);
-            String label = xp == null ? "Загрузка…" : rowH < 34 && level < 50 ? "Ур. " + level + " · −" + Math.max(0, Rules.threshold(level + 1) - xp) + " XP" : "Уровень " + level;
+            String label = xp == null ? "Загрузка…" : rowH < 34 && level < 50 ? "Ур. " + level + " · −" + Math.max(0, Rules.threshold(skill, level + 1) - xp) + " XP" : "Уровень " + level;
             g.text(font, skill.label, textX, top + 4, 0xFFF4F0FF, false);
             g.text(font, label, right - font.width(label), top + 4, 0xFFC7B5FF, false);
             if (xp != null && rowH >= 34) {
-                String remaining = level >= 50 ? "Максимальный уровень" : "До ур. " + (level + 1) + ": " + Math.max(0, Rules.threshold(level + 1) - xp) + " XP";
+                String remaining = level >= 50 ? "Максимальный уровень" : "До ур. " + (level + 1) + ": " + Math.max(0, Rules.threshold(skill, level + 1) - xp) + " XP";
                 g.text(font, remaining, textX, top + 15, 0xFFAAA4BB, false);
             }
             int barY = top + rowH - 10, barWidth = Math.max(0, right - textX);
             g.fill(textX, barY, right, barY + 3, 0xFF514A63);
-            int current = xp == null ? 0 : level >= 50 ? 1 : Math.max(0, xp - Rules.threshold(level));
-            int total = xp == null || level >= 50 ? 1 : Rules.threshold(level + 1) - Rules.threshold(level);
+            int current = xp == null ? 0 : level >= 50 ? 1 : Math.max(0, xp - Rules.threshold(skill, level));
+            int total = xp == null || level >= 50 ? 1 : Rules.threshold(skill, level + 1) - Rules.threshold(skill, level);
             int fill = Math.max(0, Math.min(barWidth, (int)((long)barWidth * current / total)));
             if (fill > 0) g.fill(textX, barY, textX + fill, barY + 3, 0xFFA788FF);
         }

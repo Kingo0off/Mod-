@@ -21,12 +21,43 @@ public final class Rules {
         for (Skill s : Skill.values()) if (s.suffix.equals(suffix)) return new Requirement(s, required);
         return null;
     }
-    public static int level(int xp) {
-        int level = 1; while (level < 50 && xp >= threshold(level + 1)) level++; return level;
+    public static int cost(Skill skill, int currentLevel) {
+        int finalCost = skill == Skill.SWORD ? 1000 : skill == Skill.HOE ? 250 : 500;
+        return (finalCost * Math.max(1, Math.min(49, currentLevel)) + 48) / 49;
+    }
+    public static int threshold(Skill skill, int level) {
+        int total = 0;
+        for (int i = 1; i < Math.min(50, level); i++) total += cost(skill, i);
+        return total;
+    }
+    public static int level(Skill skill, int xp) {
+        int level = 1;
+        while (level < 50 && xp >= threshold(skill, level + 1)) level++;
+        return level;
+    }
+    public static int migrate(Skill skill, int xp) {
+        int oldLevel = 1;
+        while (oldLevel < 50 && xp >= 10 * (oldLevel + 1) * oldLevel) oldLevel++;
+        if (oldLevel >= 50) return threshold(skill, 50);
+        int oldStart = 10 * oldLevel * (oldLevel - 1);
+        int oldCost = 20 * oldLevel;
+        int oldProgress = Math.max(0, xp - oldStart);
+        return threshold(skill, oldLevel) + (int)((long) oldProgress * cost(skill, oldLevel) / oldCost);
     }
     public static int mobXp(float maxHealth) {
         if (!Float.isFinite(maxHealth) || maxHealth <= 0) return 0;
-        return Math.max(1, Math.min(threshold(50), Math.round(maxHealth)));
+        return Math.max(1, Math.min(threshold(Skill.SWORD, 50), Math.round(maxHealth)));
     }
-    public static int threshold(int level) { return 10 * level * (level - 1); }
+    public static int pickaxeXp(String block) {
+        if (block == null) return 1;
+        return switch (block) {
+            case "minecraft:coal_ore", "minecraft:deepslate_coal_ore" -> 5;
+            case "minecraft:iron_ore", "minecraft:deepslate_iron_ore" -> 10;
+            case "minecraft:gold_ore", "minecraft:deepslate_gold_ore", "minecraft:nether_gold_ore" -> 15;
+            case "minecraft:diamond_ore", "minecraft:deepslate_diamond_ore" -> 20;
+            case "minecraft:emerald_ore", "minecraft:deepslate_emerald_ore" -> 25;
+            case "minecraft:ancient_debris" -> 50;
+            default -> 1;
+        };
+    }
 }
