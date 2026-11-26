@@ -12,7 +12,13 @@ import net.minecraft.world.item.enchantment.ItemEnchantments;
 public final class EnchantProgress {
     private static final String KEY = "atl_skills:enchant_progress";
     private EnchantProgress() {}
-    public static int cost(int level) { return Math.min(10000, Math.max(1, level) * 100); }
+    public static int cost(int level) { return Math.min(100, Math.max(1, level)) * 100; }
+    public record Advance(int level, int experience) {}
+    public static Advance advance(int level, int maximum, int experience) {
+        if (level < 1 || level >= maximum) return new Advance(level, 0);
+        int xp = Math.max(0, Math.min(cost(level), experience));
+        return xp + 1 >= cost(level) ? new Advance(level + 1, 0) : new Advance(level, xp + 1);
+    }
     private static String id(Holder<Enchantment> enchantment) {
         return enchantment.unwrapKey().map(key -> key.identifier().toString()).orElse("");
     }
@@ -33,12 +39,9 @@ public final class EnchantProgress {
             String id = id(enchantment);
             int level = existing.getLevel(enchantment);
             if (id.isEmpty() || level < 1 || level >= enchantment.value().getMaxLevel()) continue;
-            int next = Math.max(0, progress.getIntOr(id, 0)) + 1;
-            if (next >= cost(level)) {
-                changed.set(enchantment, level + 1);
-                next = 0;
-            }
-            progress.putInt(id, next);
+            Advance next = advance(level, enchantment.value().getMaxLevel(), progress.getIntOr(id, 0));
+            if (next.level() != level) changed.set(enchantment, next.level());
+            progress.putInt(id, next.experience());
             updated = true;
         }
         if (!updated) return;
