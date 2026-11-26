@@ -29,7 +29,8 @@ import ru.atl.skills.Rules;
 
 @EventBusSubscriber(modid = AtlSkills.ID, value = Dist.CLIENT)
 public final class SkillsClient {
-    private static final KeyMapping OPEN = new KeyMapping("key.atl_skills.open", InputConstants.KEY_K, KeyMapping.Category.MISC);
+    private static final KeyMapping.Category CATEGORY = new KeyMapping.Category(Identifier.fromNamespaceAndPath(AtlSkills.ID, "controls"));
+    private static final KeyMapping OPEN = new KeyMapping("key.atl_skills.open", InputConstants.KEY_K, CATEGORY);
     private static final Map<Rules.Skill, Integer> LAST = new EnumMap<>(Rules.Skill.class);
     private static final Queue<Notice> QUEUE = new ArrayDeque<>();
     private static Player previousPlayer;
@@ -40,7 +41,7 @@ public final class SkillsClient {
 
     private SkillsClient() {}
 
-    @SubscribeEvent public static void keys(RegisterKeyMappingsEvent event) { event.register(OPEN); }
+    @SubscribeEvent public static void keys(RegisterKeyMappingsEvent event) { event.registerCategory(CATEGORY); event.register(OPEN); }
 
     @SubscribeEvent public static void tick(ClientTickEvent.Post event) {
         Minecraft mc = Minecraft.getInstance();
