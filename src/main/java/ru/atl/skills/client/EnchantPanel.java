@@ -39,6 +39,7 @@ public final class EnchantPanel {
         int x = x(s), y = y(s);
         g.fill(x, y, x + 109, y + 58, 0xFF211B32);
         var font = Minecraft.getInstance().font;
+        g.text(font, "1 ур. + лазурит", x + 2, y - 9, 0xFFD9C8FF, false);
         if (options.isEmpty()) {
             g.text(font, "Нет доступных", x + 4, y + 6, 0xFFB9AACF, false);
             g.text(font, "зачарований", x + 4, y + 17, 0xFFB9AACF, false);
@@ -47,8 +48,10 @@ public final class EnchantPanel {
             int top = y + row * 19;
             g.fill(x + 1, top + 1, x + 108, top + 18, 0xFF3C3056);
             String name = Enchantment.getFullname(options.get(offset + row), 1).getString();
-            g.text(font, font.plainSubstrByWidth(name, 101), x + 4, top + 5, 0xFFE6DCFF, false);
+            g.text(font, font.plainSubstrByWidth(name, 94), x + 4, top + 5, 0xFFE6DCFF, false);
         }
+        if (offset > 0) g.text(font, "↑", x + 99, y + 4, 0xFFCAAFFF, false);
+        if (offset + 3 < options.size()) g.text(font, "↓", x + 99, y + 42, 0xFFCAAFFF, false);
     }
     @SubscribeEvent public static void click(ScreenEvent.MouseButtonPressed.Pre event) {
         if (!(event.getScreen() instanceof EnchantmentScreen s) || !inside(s, event.getMouseX(), event.getMouseY())) return;
