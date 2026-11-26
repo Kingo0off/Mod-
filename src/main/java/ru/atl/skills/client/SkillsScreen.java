@@ -33,10 +33,10 @@ public final class SkillsScreen extends Screen {
             int top = rowTop + index++ * rowH;
             g.fill(x + 10, top, x + w - 10, top + rowH - 3, 0xFF28243B);
             g.fill(x + 10, top, x + 13, top + rowH - 3, 0xFF8C6BE4);
-            g.item(SkillsClient.icon(skill), x + 17, top + (rowH - 19) / 2);
             Integer xp = p == null ? null : AtlSkills.skillXp(p, skill);
             int textX = x + 41, right = x + w - 19;
             int level = xp == null ? 1 : Rules.level(xp);
+            g.item(SkillsClient.icon(skill, level), x + 17, top + (rowH - 19) / 2);
             String label = xp == null ? "Загрузка…" : "Уровень " + level;
             g.text(font, skill.label, textX, top + 4, 0xFFF4F0FF, false);
             g.text(font, label, right - font.width(label), top + 4, 0xFFC7B5FF, false);
