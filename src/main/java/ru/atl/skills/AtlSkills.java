@@ -4,7 +4,10 @@ import com.mojang.serialization.Codec;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.Supplier;
-import net.minecraft.commands.Commands;
+import net.minecraft.ChatFormatting;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import java.util.WeakHashMap;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -18,7 +21,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
@@ -33,6 +35,7 @@ public final class AtlSkills {
     public static final String ID = "atl_skills";
     private static final DeferredRegister<AttachmentType<?>> DATA = DeferredRegister.create(NeoForgeRegistries.Keys.ATTACHMENT_TYPES, ID);
     private static final Map<Rules.Skill, Supplier<AttachmentType<Integer>>> XP = new EnumMap<>(Rules.Skill.class);
+    private static final Map<ServerPlayer, Long> LAST_WARNING = new WeakHashMap<>();
     private static final Supplier<AttachmentType<Integer>> BALANCE_VERSION = DATA.register("balance_version",
         () -> AttachmentType.builder(() -> 0).serialize(Codec.INT.fieldOf("version")).copyOnDeath().build());
     static {
@@ -51,7 +54,14 @@ public final class AtlSkills {
         if (!(player instanceof ServerPlayer sp) || player.isCreative() || player.isSpectator()) return true;
         Rules.Requirement req = requirement(stack);
         if (req == null || Rules.level(req.skill(), sp.getData(XP.get(req.skill()))) >= req.level()) return true;
-        if (notify) sp.sendSystemMessage(Component.literal("Нужен уровень «" + req.skill().label + "» " + req.level() + ". Посмотреть навыки: /skills"));
+        if (notify) {
+            long now = System.nanoTime();
+            if (now - LAST_WARNING.getOrDefault(sp, 0L) >= 1_000_000_000L) {
+                LAST_WARNING.put(sp, now);
+                sp.sendOverlayMessage(Component.literal("Нужен уровень «" + req.skill().label + "»: " + req.level()).withStyle(ChatFormatting.RED));
+                sp.playNotifySound(SoundEvents.UI_BUTTON_CLICK, SoundSource.PLAYERS, 0.7F, 0.7F);
+            }
+        }
         return false;
     }
     private static void gain(ServerPlayer player, Rules.Skill skill, int amount) {
@@ -112,17 +122,5 @@ public final class AtlSkills {
             }
             for (Rules.Skill skill : Rules.Skill.values()) { p.getData(XP.get(skill)); p.syncData(XP.get(skill)); }
         }
-    }
-    @SubscribeEvent public void commands(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("skills").executes(ctx -> {
-            ServerPlayer p = ctx.getSource().getPlayerOrException();
-            p.sendSystemMessage(Component.literal("Навыки ATL — красивое меню открывается клавишей K:"));
-            for (Rules.Skill skill : Rules.Skill.values()) {
-                int xp = p.getData(XP.get(skill)); int level = Rules.level(skill, xp);
-                String progress = level == 50 ? "максимум" : (xp - Rules.threshold(skill, level)) + "/" + (Rules.threshold(skill, level + 1) - Rules.threshold(skill, level));
-                p.sendSystemMessage(Component.literal(skill.label + ": " + level + " (" + progress + ")"));
-            }
-            return 1;
-        }));
     }
 }
