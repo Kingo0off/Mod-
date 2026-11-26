@@ -40,6 +40,10 @@ public final class SkillsScreen extends Screen {
             String label = xp == null ? "Загрузка…" : "Уровень " + level;
             g.text(font, skill.label, textX, top + 4, 0xFFF4F0FF, false);
             g.text(font, label, right - font.width(label), top + 4, 0xFFC7B5FF, false);
+            if (xp != null && rowH >= 29) {
+                String remaining = level >= 50 ? "Максимальный уровень" : "До ур. " + (level + 1) + ": " + Math.max(0, Rules.threshold(level + 1) - xp) + " XP";
+                g.text(font, remaining, textX, top + 15, 0xFFAAA4BB, false);
+            }
             int barY = top + rowH - 10, barWidth = Math.max(0, right - textX);
             g.fill(textX, barY, right, barY + 3, 0xFF514A63);
             int current = xp == null ? 0 : level >= 50 ? 1 : Math.max(0, xp - Rules.threshold(level));
