@@ -1,0 +1,52 @@
+package ru.atl.skills;
+
+import io.netty.buffer.ByteBuf;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.inventory.EnchantmentMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+
+public record ChooseEnchant(int containerId, String enchantment) implements CustomPacketPayload {
+    public static final Type<ChooseEnchant> TYPE = new Type<>(Identifier.fromNamespaceAndPath(AtlSkills.ID, "choose_enchant"));
+    public static final StreamCodec<ByteBuf, ChooseEnchant> CODEC = StreamCodec.composite(
+            ByteBufCodecs.VAR_INT, ChooseEnchant::containerId,
+            ByteBufCodecs.STRING_UTF8, ChooseEnchant::enchantment, ChooseEnchant::new);
+    @Override public Type<ChooseEnchant> type() { return TYPE; }
+
+    @EventBusSubscriber(modid = AtlSkills.ID)
+    public static final class Registration {
+        @SubscribeEvent public static void register(RegisterPayloadHandlersEvent event) {
+            event.registrar("1").playToServer(TYPE, CODEC, ChooseEnchant::handle);
+        }
+    }
+    private static void handle(ChooseEnchant packet, IPayloadContext context) {
+        if (!(context.player() instanceof ServerPlayer player)
+                || !(player.containerMenu instanceof EnchantmentMenu menu)
+                || menu.containerId != packet.containerId() || !menu.stillValid(player)) return;
+        Identifier id = Identifier.tryParse(packet.enchantment());
+        if (id == null) return;
+        var key = ResourceKey.create(Registries.ENCHANTMENT, id);
+        var holder = player.level().registryAccess().lookupOrThrow(Registries.ENCHANTMENT).get(key).orElse(null);
+        if (holder == null) return;
+        ItemStack item = menu.getSlot(0).getItem();
+        ItemStack lapis = menu.getSlot(1).getItem();
+        boolean creative = player.getAbilities().instabuild;
+        if (!EnchantChoices.eligible(item, holder)) return;
+        if (!creative && (player.experienceLevel < 1 || !lapis.is(Items.LAPIS_LAZULI) || lapis.getCount() < 1)) return;
+        item.enchant(holder, 1);
+        player.onEnchantmentPerformed(item, 1);
+        if (!creative) { lapis.shrink(1); menu.getSlot(1).setChanged(); }
+        menu.getSlot(0).setChanged();
+        menu.broadcastChanges();
+    }
+}
