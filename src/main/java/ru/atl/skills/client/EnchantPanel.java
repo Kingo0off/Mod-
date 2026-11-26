@@ -11,7 +11,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ScreenEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import ru.atl.skills.AtlSkills;
 import ru.atl.skills.ChooseEnchant;
 import ru.atl.skills.EnchantChoices;
@@ -58,7 +58,7 @@ public final class EnchantPanel {
         int index = offset + (int)(event.getMouseY() - y(s)) / 19;
         if (index < 0 || index >= options.size()) return;
         options.get(index).unwrapKey().ifPresent(key ->
-            PacketDistributor.sendToServer(new ChooseEnchant(s.getMenu().containerId, key.identifier().toString())));
+            ClientPacketDistributor.sendToServer(new ChooseEnchant(s.getMenu().containerId, key.identifier().toString())));
     }
     @SubscribeEvent public static void scroll(ScreenEvent.MouseScrolled.Pre event) {
         if (!(event.getScreen() instanceof EnchantmentScreen s) || !inside(s, event.getMouseX(), event.getMouseY())) return;
