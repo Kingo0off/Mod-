@@ -24,5 +24,9 @@ public final class Rules {
     public static int level(int xp) {
         int level = 1; while (level < 50 && xp >= threshold(level + 1)) level++; return level;
     }
+    public static int mobXp(float maxHealth) {
+        if (!Float.isFinite(maxHealth) || maxHealth <= 0) return 0;
+        return Math.max(1, Math.min(threshold(50), Math.round(maxHealth)));
+    }
     public static int threshold(int level) { return 10 * level * (level - 1); }
 }
