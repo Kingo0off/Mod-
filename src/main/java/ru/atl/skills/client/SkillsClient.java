@@ -25,6 +25,10 @@ import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 import net.minecraft.network.chat.Component;
 import ru.atl.skills.AtlSkills;
+import ru.atl.skills.EnchantProgress;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 import ru.atl.skills.Rules;
 
 @EventBusSubscriber(modid = AtlSkills.ID, value = Dist.CLIENT)
@@ -73,12 +77,25 @@ public final class SkillsClient {
     }
 
     @SubscribeEvent public static void tooltip(ItemTooltipEvent event) {
-        Rules.Requirement req = AtlSkills.requirement(event.getItemStack());
-        if (req == null) return;
-        Player p = event.getEntity();
-        Integer xp = p == null ? null : AtlSkills.skillXp(p, req.skill());
-        ChatFormatting color = xp == null ? ChatFormatting.GRAY : Rules.level(req.skill(), xp) >= req.level() ? ChatFormatting.GREEN : ChatFormatting.RED;
-        event.getToolTip().add(Component.literal("Требуется: " + req.skill().label + " — ур. " + req.level()).withStyle(color));
+        ItemStack stack = event.getItemStack();
+        Rules.Requirement req = AtlSkills.requirement(stack);
+        if (req != null) {
+            Player p = event.getEntity();
+            Integer xp = p == null ? null : AtlSkills.skillXp(p, req.skill());
+            ChatFormatting color = xp == null ? ChatFormatting.GRAY : Rules.level(req.skill(), xp) >= req.level() ? ChatFormatting.GREEN : ChatFormatting.RED;
+            event.getToolTip().add(Component.literal("Требуется: " + req.skill().label + " — ур. " + req.level()).withStyle(color));
+        }
+        ItemEnchantments enchants = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
+        for (var enchantment : enchants.keySet()) {
+            int level = enchants.getLevel(enchantment);
+            if (level >= enchantment.value().getMaxLevel()) continue;
+            int cost = EnchantProgress.cost(level);
+            int xp = Math.max(0, Math.min(cost, EnchantProgress.experience(stack, enchantment)));
+            int filled = Math.min(10, xp * 10 / cost);
+            event.getToolTip().add(Enchantment.getFullname(enchantment, level).copy()
+                    .append(Component.literal("  " + "■".repeat(filled) + "□".repeat(10 - filled) + " " + xp + "/" + cost)
+                            .withStyle(ChatFormatting.LIGHT_PURPLE)));
+        }
     }
 
     static ItemStack icon(Rules.Skill skill, int level) {
