@@ -1,0 +1,22 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="All Rights Reserved"
+[[mods]]
+modId="atl_skills"
+version="0.1.0"
+displayName="ATL Skills"
+description='''Уровни навыков для инструментов и оружия.'''
+[[dependencies.atl_skills]]
+modId="neoforge"
+type="required"
+versionRange="[26.3.0.1,)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.atl_skills]]
+modId="minecraft"
+type="required"
+versionRange="[26.3]"
+ordering="NONE"
+side="BOTH"
+[[mixins]]
+config="atl_skills.mixins.json"

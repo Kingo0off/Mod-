@@ -1,0 +1,15 @@
+package ru.atl.skills;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+class RulesTest {
+    @Test void tiersAndTypes() {
+        assertEquals(new Rules.Requirement(Rules.Skill.PICKAXE, 50), Rules.requirement("minecraft:netherite_pickaxe"));
+        assertEquals(new Rules.Requirement(Rules.Skill.AXE, 15), Rules.requirement("minecraft:iron_axe"));
+        assertEquals(new Rules.Requirement(Rules.Skill.SWORD, 30), Rules.requirement("minecraft:diamond_sword"));
+        assertNull(Rules.requirement("minecraft:diamond")); assertNull(Rules.requirement("other:diamond_pickaxe"));
+    }
+    @Test void levelBoundaries() {
+        assertEquals(1, Rules.level(0)); assertEquals(1, Rules.level(19)); assertEquals(2, Rules.level(20));
+        assertEquals(49, Rules.level(Rules.threshold(50) - 1)); assertEquals(50, Rules.level(Rules.threshold(50)));
+    }
+}
