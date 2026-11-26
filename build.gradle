@@ -11,7 +11,8 @@ neoForge {
     version = '26.3.0.118'
     runs { server { server(); programArgument '--nogui' } }
     mods { atl_skills { sourceSet sourceSets.main } }
+    unitTest { enable(); testedMod = mods.atl_skills }
 }
-dependencies { testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'; testRuntimeOnly 'org.junit.platform:junit-platform-launcher' }
+dependencies { testImplementation 'net.neoforged:testframework:26.3.0.118'; testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'; testRuntimeOnly 'org.junit.platform:junit-platform-launcher' }
 tasks.withType(Test).configureEach { useJUnitPlatform() }
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }

@@ -1,0 +1,46 @@
+package ru.atl.skills;
+
+import net.minecraft.core.registries.Registries;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.neoforged.testframework.junit.EphemeralTestServerProvider;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import static org.junit.jupiter.api.Assertions.*;
+
+@ExtendWith(EphemeralTestServerProvider.class)
+class ArmorEnchantIntegrationTest {
+    @Test void vanillaProtectionFitsAllFourArmorSlots(MinecraftServer server) {
+        var registry = server.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+        var protection = registry.getOrThrow(Enchantments.PROTECTION);
+        var fire = registry.getOrThrow(Enchantments.FIRE_PROTECTION);
+        var curse = registry.getOrThrow(Enchantments.BINDING_CURSE);
+        for (var item : new net.minecraft.world.item.Item[]{Items.IRON_HELMET, Items.IRON_CHESTPLATE, Items.IRON_LEGGINGS, Items.IRON_BOOTS}) {
+            var stack = new ItemStack(item);
+            assertTrue(EnchantChoices.eligible(stack, protection), item.toString());
+            assertTrue(EnchantChoices.eligible(stack, fire), item.toString());
+            assertFalse(EnchantChoices.eligible(stack, curse), item.toString());
+            stack.enchant(protection, 1);
+            assertFalse(EnchantChoices.eligible(stack, fire), "protection types must be mutually exclusive");
+        }
+        assertFalse(EnchantChoices.eligible(new ItemStack(Items.IRON_PICKAXE), protection));
+        assertFalse(EnchantChoices.eligible(new ItemStack(Items.IRON_PICKAXE), registry.getOrThrow(Enchantments.SHARPNESS)));
+    }
+    @Test void armorExperienceIsIndependentAndUpgradesAtTwenty(MinecraftServer server) {
+        var protection = server.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.PROTECTION);
+        var first = new ItemStack(Items.IRON_CHESTPLATE);
+        var second = new ItemStack(Items.IRON_CHESTPLATE);
+        first.enchant(protection, 1);
+        second.enchant(protection, 1);
+        for (int i = 0; i < 19; i++) EnchantProgress.use(first);
+        assertEquals(19, EnchantProgress.experience(first, protection));
+        assertEquals(0, EnchantProgress.experience(second, protection));
+        assertEquals(1, first.getTagEnchantments().getLevel(protection));
+        EnchantProgress.use(first);
+        assertEquals(2, first.getTagEnchantments().getLevel(protection));
+        assertEquals(1, second.getTagEnchantments().getLevel(protection));
+        assertEquals(40, EnchantProgress.cost(first, 2));
+    }
+}
