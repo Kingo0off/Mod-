@@ -50,8 +50,8 @@ public record ChooseEnchant(int containerId, String enchantment) implements Cust
             return;
         }
         boolean armor = EnchantProgress.isArmor(item);
-        int neededLevels = EnchantMath.levels(packet.enchantment(), holder.value().getWeight(), armor);
-        int neededShelves = EnchantMath.shelves(packet.enchantment(), holder.value().getWeight(), armor);
+        int neededLevels = EnchantMath.levels(id.toString(), holder.value().getWeight(), armor);
+        int neededShelves = EnchantMath.shelves(id.toString(), holder.value().getWeight(), armor);
         if (!creative && ShelfState.count(menu) < neededShelves) {
             player.sendOverlayMessage(Component.literal("Нужно книжных полок: " + neededShelves).withStyle(ChatFormatting.RED));
             return;
