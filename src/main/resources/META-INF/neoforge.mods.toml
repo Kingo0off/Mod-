@@ -3,7 +3,7 @@ loaderVersion="[4,)"
 license="All Rights Reserved"
 [[mods]]
 modId="atl_skills"
-version="0.3.2"
+version="0.4.0"
 displayName="ATL Skills"
 description='''Уровни навыков для инструментов и оружия.'''
 [[dependencies.atl_skills]]
