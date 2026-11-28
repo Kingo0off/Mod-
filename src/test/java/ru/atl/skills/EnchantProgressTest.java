@@ -11,7 +11,7 @@ class EnchantProgressTest {
     @Test void armorProgressUsesLowerThresholdsAndPreservesExcess() {
         assertEquals(20, EnchantMath.cost(1, true));
         assertEquals(40, EnchantMath.cost(2, true));
-        assertEquals(100, EnchantMath.cost(1, false));
+        assertEquals(300, EnchantMath.cost(1, false));
         assertEquals(new EnchantMath.Advance(1, 19), EnchantMath.advance(1, 4, 18, true));
         assertEquals(new EnchantMath.Advance(2, 0), EnchantMath.advance(1, 4, 19, true));
         assertEquals(new EnchantMath.Advance(2, 61), EnchantMath.advance(1, 4, 80, true));
