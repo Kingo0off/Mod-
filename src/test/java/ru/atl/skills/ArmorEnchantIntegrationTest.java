@@ -29,6 +29,10 @@ class ArmorEnchantIntegrationTest {
         assertFalse(EnchantChoices.eligible(new ItemStack(Items.IRON_PICKAXE), protection));
         assertFalse(EnchantChoices.eligible(new ItemStack(Items.IRON_PICKAXE), registry.getOrThrow(Enchantments.SHARPNESS)));
     }
+    @Test void enchantingMenuHasBookshelfAccessor() {
+        assertTrue(ru.atl.skills.mixin.EnchantMenuAccess.class.isAssignableFrom(
+                net.minecraft.world.inventory.EnchantmentMenu.class));
+    }
     @Test void armorExperienceIsIndependentAndUpgradesAtTwenty(MinecraftServer server) {
         var protection = server.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.PROTECTION);
         var first = new ItemStack(Items.IRON_CHESTPLATE);
