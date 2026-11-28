@@ -79,18 +79,26 @@ public final class EnchantPanel {
             String shelfText = Integer.toString(neededShelves), levelText = Integer.toString(levels);
             g.text(font, shelfText, x + 89 - font.width(shelfText), top + 5, allowed ? 0xFFFFC14D : 0xFF877454, false);
             g.text(font, levelText, x + 105 - font.width(levelText), top + 5, allowed ? 0xFF58E342 : 0xFF627B5B, false);
-            if (hovered) {
-                String id = enchantment.unwrapKey().map(key -> key.identifier().toString()).orElse("");
-                g.setComponentTooltipForNextFrame(font, List.of(
-                    Enchantment.getFullname(enchantment, 1),
-                    Component.literal(EnchantDescriptions.description(id)),
-                    Component.literal("§eПолки: " + neededShelves + " §aУровни: " + levels),
-                    Component.literal(allowed ? "§7Стоимость: также 1 лазурит" : "§cКонфликтует с чарами предмета или уже установлено")
-                ), event.getMouseX(), event.getMouseY());
-            }
+
         }
         if (offset > 0) g.text(font, "↑", x + 99, y + 1, 0xFFFFFFFF, false);
         if (offset + 3 < options.size()) g.text(font, "↓", x + 99, y + 47, 0xFFFFFFFF, false);
+    }
+    @SubscribeEvent public static void hover(ScreenEvent.Render.Pre event) {
+        if (!(event.getScreen() instanceof EnchantmentScreen s) || !inside(s, event.getMouseX(), event.getMouseY())) return;
+        var options = choices(s);
+        int index = offset + (event.getMouseY() - y(s)) / 19;
+        if (index < 0 || index >= options.size()) return;
+        var enchantment = options.get(index);
+        boolean allowed = EnchantChoices.eligible(s.getMenu().getSlot(0).getItem(), enchantment);
+        int weight = enchantment.value().getWeight();
+        String id = enchantment.unwrapKey().map(key -> key.identifier().toString()).orElse("");
+        event.getGuiGraphics().setComponentTooltipForNextFrame(Minecraft.getInstance().font, List.of(
+                Enchantment.getFullname(enchantment, 1),
+                Component.literal(EnchantDescriptions.description(id)),
+                Component.literal("§eПолки: " + EnchantMath.shelves(weight) + " §aУровни: " + EnchantMath.levels(weight)),
+                Component.literal(allowed ? "§7Стоимость: также 1 лазурит" : "§cКонфликтует с чарами предмета или уже установлено")
+        ), event.getMouseX(), event.getMouseY());
     }
     @SubscribeEvent public static void click(ScreenEvent.MouseButtonPressed.Pre event) {
         if (!(event.getScreen() instanceof EnchantmentScreen s) || !inside(s, event.getMouseX(), event.getMouseY())) return;
