@@ -2,28 +2,43 @@ package ru.atl.skills.client;
 
 import java.util.List;
 import com.mojang.blaze3d.platform.InputConstants;
-import net.minecraft.client.resources.sounds.SimpleSoundInstance;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.EnchantmentScreen;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
 import ru.atl.skills.AtlSkills;
 import ru.atl.skills.ChooseEnchant;
 import ru.atl.skills.EnchantChoices;
+import ru.atl.skills.EnchantMath;
+import ru.atl.skills.ShelfState;
 
 @EventBusSubscriber(modid = AtlSkills.ID, value = Dist.CLIENT)
 public final class EnchantPanel {
     private static int offset;
     private static EnchantmentScreen current;
+    private static AbstractContainerMenu syncedMenu;
+    private static int shelfCount = -1;
     private EnchantPanel() {}
+    @SubscribeEvent public static void payloads(RegisterClientPayloadHandlersEvent event) {
+        event.register(ShelfState.TYPE, (payload, context) -> {
+            var player = Minecraft.getInstance().player;
+            if (player != null && player.containerMenu.containerId == payload.containerId()) {
+                syncedMenu = player.containerMenu;
+                shelfCount = payload.count();
+            }
+        });
+    }
     private static List<Holder<Enchantment>> choices(EnchantmentScreen screen) {
         Minecraft mc = Minecraft.getInstance();
         return mc.player == null ? List.of() : EnchantChoices.options(mc.player, screen.getMenu().getSlot(0).getItem());
@@ -40,21 +55,42 @@ public final class EnchantPanel {
         offset = Math.max(0, Math.min(offset, Math.max(0, options.size() - 3)));
         GuiGraphicsExtractor g = event.getGuiGraphics();
         int x = x(s), y = y(s);
-        g.fill(x, y, x + 109, y + 58, 0xFF211B32);
+        int availableShelves = syncedMenu == s.getMenu() ? shelfCount : -1;
+        g.fill(x - 1, y - 1, x + 110, y + 59, 0xFF25202B);
+        g.fill(x, y, x + 109, y + 58, 0xFF615746);
         var font = Minecraft.getInstance().font;
-        g.text(font, "1 ур. + лазурит", x + 2, y - 9, 0xFFD9C8FF, false);
+        g.text(font, "Полки: " + (availableShelves < 0 ? "…" : availableShelves), x + 2, y - 9, 0xFFD5B963, false);
         if (options.isEmpty()) {
-            g.text(font, "Нет доступных", x + 4, y + 6, 0xFFB9AACF, false);
-            g.text(font, "зачарований", x + 4, y + 17, 0xFFB9AACF, false);
+            g.text(font, "Нет доступных", x + 4, y + 6, 0xFFD3C6AA, false);
+            g.text(font, "зачарований", x + 4, y + 17, 0xFFD3C6AA, false);
         }
         for (int row = 0; row < 3 && offset + row < options.size(); row++) {
             int top = y + row * 19;
-            g.fill(x + 1, top + 1, x + 108, top + 18, 0xFF3C3056);
-            String name = Enchantment.getFullname(options.get(offset + row), 1).getString();
-            g.text(font, font.plainSubstrByWidth(name, 94), x + 4, top + 5, 0xFFE6DCFF, false);
+            Holder<Enchantment> enchantment = options.get(offset + row);
+            boolean allowed = EnchantChoices.eligible(s.getMenu().getSlot(0).getItem(), enchantment);
+            boolean hovered = event.getMouseX() >= x && event.getMouseX() < x + 109
+                    && event.getMouseY() >= top && event.getMouseY() < top + 19;
+            g.fill(x + 1, top + 1, x + 108, top + 18,
+                    !allowed ? 0xFF373239 : hovered ? 0xFFAC6FA4 : 0xFFA99873);
+            String name = Enchantment.getFullname(enchantment, 1).getString();
+            int weight = enchantment.value().getWeight();
+            int neededShelves = EnchantMath.shelves(weight), levels = EnchantMath.levels(weight);
+            g.text(font, font.plainSubstrByWidth(name, 67), x + 4, top + 5, allowed ? 0xFF271F1B : 0xFF817983, false);
+            String shelfText = Integer.toString(neededShelves), levelText = Integer.toString(levels);
+            g.text(font, shelfText, x + 89 - font.width(shelfText), top + 5, allowed ? 0xFFFFC14D : 0xFF877454, false);
+            g.text(font, levelText, x + 105 - font.width(levelText), top + 5, allowed ? 0xFF58E342 : 0xFF627B5B, false);
+            if (hovered) {
+                String id = enchantment.unwrapKey().map(key -> key.identifier().toString()).orElse("");
+                g.setComponentTooltipForNextFrame(font, List.of(
+                    Enchantment.getFullname(enchantment, 1),
+                    Component.literal(EnchantDescriptions.description(id)),
+                    Component.literal("§eПолки: " + neededShelves + " §aУровни: " + levels),
+                    Component.literal(allowed ? "§7Стоимость: также 1 лазурит" : "§cКонфликтует с чарами предмета или уже установлено")
+                ), event.getMouseX(), event.getMouseY());
+            }
         }
-        if (offset > 0) g.text(font, "↑", x + 99, y + 4, 0xFFCAAFFF, false);
-        if (offset + 3 < options.size()) g.text(font, "↓", x + 99, y + 42, 0xFFCAAFFF, false);
+        if (offset > 0) g.text(font, "↑", x + 99, y + 1, 0xFFFFFFFF, false);
+        if (offset + 3 < options.size()) g.text(font, "↓", x + 99, y + 47, 0xFFFFFFFF, false);
     }
     @SubscribeEvent public static void click(ScreenEvent.MouseButtonPressed.Pre event) {
         if (!(event.getScreen() instanceof EnchantmentScreen s) || !inside(s, event.getMouseX(), event.getMouseY())) return;
@@ -63,7 +99,9 @@ public final class EnchantPanel {
         var options = choices(s);
         int index = offset + (int)(event.getMouseY() - y(s)) / 19;
         if (index < 0 || index >= options.size()) return;
-        options.get(index).unwrapKey().ifPresent(key -> {
+        Holder<Enchantment> enchantment = options.get(index);
+        if (!EnchantChoices.eligible(s.getMenu().getSlot(0).getItem(), enchantment)) return;
+        enchantment.unwrapKey().ifPresent(key -> {
             Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
             ClientPacketDistributor.sendToServer(new ChooseEnchant(s.getMenu().containerId, key.identifier().toString()));
         });

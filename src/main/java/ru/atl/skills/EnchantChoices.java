@@ -14,7 +14,7 @@ import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 public final class EnchantChoices {
     private EnchantChoices() {}
-    public static boolean eligible(ItemStack item, Holder<Enchantment> enchantment) {
+    public static boolean applicable(ItemStack item, Holder<Enchantment> enchantment) {
         if (item.isEmpty() || item.getCount() != 1) return false;
         String enchantId = enchantment.unwrapKey().map(key -> key.identifier().toString()).orElse("");
         String itemId = BuiltInRegistries.ITEM.getKey(item.getItem()).toString();
@@ -23,6 +23,10 @@ public final class EnchantChoices {
                 && EnchantProgress.isArmor(item);
         if (!standardProtection && (!item.supportsEnchantment(enchantment)
                 || !enchantment.value().isSupportedItem(item))) return false;
+        return true;
+    }
+    public static boolean eligible(ItemStack item, Holder<Enchantment> enchantment) {
+        if (!applicable(item, enchantment)) return false;
         ItemEnchantments enchants = item.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
         if (enchants.getLevel(enchantment) != 0) return false;
         return enchants.keySet().stream().allMatch(old -> Enchantment.areCompatible(old, enchantment));
@@ -30,7 +34,7 @@ public final class EnchantChoices {
     public static List<Holder<Enchantment>> options(Player player, ItemStack item) {
         if (item.isEmpty()) return List.of();
         return player.level().registryAccess().lookupOrThrow(Registries.ENCHANTMENT).listElements()
-                .filter(holder -> eligible(item, holder))
+                .filter(holder -> applicable(item, holder))
                 .sorted(Comparator.<net.minecraft.core.Holder.Reference<Enchantment>>comparingInt(holder -> VanillaEnchantments.priority(holder.key().identifier().toString()))
                         .thenComparing(holder -> holder.key().identifier().toString()))
                 .map(holder -> (Holder<Enchantment>)holder).toList();

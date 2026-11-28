@@ -23,6 +23,7 @@ class ArmorEnchantIntegrationTest {
             assertTrue(EnchantChoices.eligible(stack, fire), item.toString());
             assertFalse(EnchantChoices.eligible(stack, curse), item.toString());
             stack.enchant(protection, 1);
+            assertTrue(EnchantChoices.applicable(stack, fire), "conflicting protection remains visible");
             assertFalse(EnchantChoices.eligible(stack, fire), "protection types must be mutually exclusive");
         }
         assertFalse(EnchantChoices.eligible(new ItemStack(Items.IRON_PICKAXE), protection));

@@ -86,14 +86,20 @@ public final class SkillsClient {
             event.getToolTip().add(Component.literal("Требуется: " + req.skill().label + " — ур. " + req.level()).withStyle(color));
         }
         ItemEnchantments enchants = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
+        boolean hasProgress = enchants.keySet().stream().anyMatch(e -> enchants.getLevel(e) < e.value().getMaxLevel());
+        if (!hasProgress) return;
+        if (!event.getFlags().hasShiftDown()) {
+            event.getToolTip().add(Component.literal("[Shift] Показать прогресс чар").withStyle(ChatFormatting.DARK_GRAY));
+            return;
+        }
         for (var enchantment : enchants.keySet()) {
             int level = enchants.getLevel(enchantment);
             if (level >= enchantment.value().getMaxLevel()) continue;
-            int cost = EnchantProgress.cost(stack, level);
-            int xp = Math.max(0, Math.min(cost, EnchantProgress.experience(stack, enchantment)));
-            int filled = Math.min(10, xp * 10 / cost);
+            int cost = EnchantProgress.cost(stack, level, enchantment);
+            int xp = Math.max(0, EnchantProgress.experience(stack, enchantment));
+            int filled = Math.min(10, (int)((long)xp * 10 / cost));
             event.getToolTip().add(Enchantment.getFullname(enchantment, level).copy()
-                    .append(Component.literal("  " + "■".repeat(filled) + "□".repeat(10 - filled) + " " + xp + "/" + cost)
+                    .append(Component.literal("  " + "■".repeat(filled) + "□".repeat(10 - filled) + " " + xp + "/" + cost + " (осталось " + Math.max(0, cost - xp) + ")")
                             .withStyle(ChatFormatting.LIGHT_PURPLE)));
         }
     }

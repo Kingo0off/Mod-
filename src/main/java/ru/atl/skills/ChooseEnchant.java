@@ -28,7 +28,9 @@ public record ChooseEnchant(int containerId, String enchantment) implements Cust
     @EventBusSubscriber(modid = AtlSkills.ID)
     public static final class Registration {
         @SubscribeEvent public static void register(RegisterPayloadHandlersEvent event) {
-            event.registrar("1").playToServer(TYPE, CODEC, ChooseEnchant::handle);
+            var registrar = event.registrar("2");
+            registrar.playToServer(TYPE, CODEC, ChooseEnchant::handle);
+            registrar.playToClient(ShelfState.TYPE, ShelfState.CODEC);
         }
     }
     private static void handle(ChooseEnchant packet, IPayloadContext context) {
@@ -47,12 +49,18 @@ public record ChooseEnchant(int containerId, String enchantment) implements Cust
             player.sendOverlayMessage(Component.literal("Это зачарование не подходит предмету").withStyle(ChatFormatting.RED));
             return;
         }
-        if (!creative && (player.experienceLevel < 1 || !lapis.is(Items.LAPIS_LAZULI) || lapis.getCount() < 1)) {
-            player.sendOverlayMessage(Component.literal("Нужны 1 уровень опыта и 1 лазурит").withStyle(ChatFormatting.RED));
+        int neededLevels = EnchantMath.levels(holder.value().getWeight());
+        int neededShelves = EnchantMath.shelves(holder.value().getWeight());
+        if (!creative && ShelfState.count(menu) < neededShelves) {
+            player.sendOverlayMessage(Component.literal("Нужно книжных полок: " + neededShelves).withStyle(ChatFormatting.RED));
+            return;
+        }
+        if (!creative && (player.experienceLevel < neededLevels || !lapis.is(Items.LAPIS_LAZULI) || lapis.getCount() < 1)) {
+            player.sendOverlayMessage(Component.literal("Нужны уровни: " + neededLevels + " и 1 лазурит").withStyle(ChatFormatting.RED));
             return;
         }
         item.enchant(holder, 1);
-        player.onEnchantmentPerformed(item, 1);
+        player.onEnchantmentPerformed(item, neededLevels);
         if (!creative) { lapis.shrink(1); menu.getSlot(1).setChanged(); }
         menu.getSlot(0).setChanged();
         menu.broadcastChanges();

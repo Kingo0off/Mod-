@@ -21,6 +21,9 @@ public final class EnchantProgress {
         return slot == EquipmentSlot.HEAD || slot == EquipmentSlot.CHEST || slot == EquipmentSlot.LEGS || slot == EquipmentSlot.FEET;
     }
     public static int cost(ItemStack stack, int level) { return EnchantMath.cost(level, isArmor(stack)); }
+    public static int cost(ItemStack stack, int level, Holder<Enchantment> enchantment) {
+        return EnchantMath.cost(level, isArmor(stack), enchantment.value().getWeight());
+    }
     private static String id(Holder<Enchantment> enchantment) {
         return enchantment.unwrapKey().map(key -> key.identifier().toString()).orElse("");
     }
@@ -41,7 +44,7 @@ public final class EnchantProgress {
             String id = id(enchantment);
             int level = existing.getLevel(enchantment);
             if (id.isEmpty() || level < 1 || level >= enchantment.value().getMaxLevel()) continue;
-            EnchantMath.Advance next = EnchantMath.advance(level, enchantment.value().getMaxLevel(), progress.getIntOr(id, 0), isArmor(stack));
+            EnchantMath.Advance next = EnchantMath.advance(level, enchantment.value().getMaxLevel(), progress.getIntOr(id, 0), isArmor(stack), enchantment.value().getWeight());
             if (next.level() != level) changed.set(enchantment, next.level());
             progress.putInt(id, next.experience());
             updated = true;
