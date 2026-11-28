@@ -29,6 +29,11 @@ class ArmorEnchantIntegrationTest {
         assertFalse(EnchantChoices.eligible(new ItemStack(Items.IRON_PICKAXE), protection));
         assertFalse(EnchantChoices.eligible(new ItemStack(Items.IRON_PICKAXE), registry.getOrThrow(Enchantments.SHARPNESS)));
     }
+    @Test void unqualifiedEnchantNamesStillRequireTwentyFiveShelves() {
+        var id = net.minecraft.resources.Identifier.tryParse("looting");
+        assertNotNull(id);
+        assertEquals(25, EnchantMath.shelves(id.toString(), 2, false));
+    }
     @Test void enchantingTableHasEnoughPositionsForTwentyFiveShelves() {
         assertTrue(net.minecraft.world.level.block.EnchantingTableBlock.BOOKSHELF_OFFSETS.size() >= 25);
     }
