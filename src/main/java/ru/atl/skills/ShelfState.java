@@ -23,7 +23,7 @@ public record ShelfState(int containerId, int count) implements CustomPacketPayl
             int count = 0;
             for (var offset : EnchantingTableBlock.BOOKSHELF_OFFSETS)
                 if (EnchantingTableBlock.isValidBookShelf(level, pos, offset)) count++;
-            return Math.min(15, count);
+            return count;
         }).orElse(0);
     }
     @EventBusSubscriber(modid = AtlSkills.ID)

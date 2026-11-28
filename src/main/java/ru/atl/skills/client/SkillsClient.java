@@ -26,6 +26,7 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 import net.minecraft.network.chat.Component;
 import ru.atl.skills.AtlSkills;
 import ru.atl.skills.EnchantProgress;
+import ru.atl.skills.EnchantMath;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
@@ -97,10 +98,13 @@ public final class SkillsClient {
             if (level >= enchantment.value().getMaxLevel()) continue;
             int cost = EnchantProgress.cost(stack, level, enchantment);
             int xp = Math.max(0, EnchantProgress.experience(stack, enchantment));
-            int filled = Math.min(10, (int)((long)xp * 10 / cost));
-            event.getToolTip().add(Enchantment.getFullname(enchantment, level).copy()
-                    .append(Component.literal("  " + "■".repeat(filled) + "□".repeat(10 - filled) + " " + xp + "/" + cost + " (осталось " + Math.max(0, cost - xp) + ")")
-                            .withStyle(ChatFormatting.LIGHT_PURPLE)));
+            int filled = EnchantMath.barFill(xp, cost, 20);
+            int percent = (int)Math.min(100L, (long)xp * 100 / cost);
+            event.getToolTip().add(Enchantment.getFullname(enchantment, level).copy());
+            event.getToolTip().add(Component.literal("  ")
+                    .append(Component.literal("■".repeat(filled)).withStyle(ChatFormatting.LIGHT_PURPLE))
+                    .append(Component.literal("■".repeat(20 - filled)).withStyle(ChatFormatting.DARK_GRAY))
+                    .append(Component.literal(" " + percent + "%  " + xp + "/" + cost).withStyle(ChatFormatting.GRAY)));
         }
     }
 

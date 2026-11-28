@@ -21,6 +21,7 @@ import ru.atl.skills.AtlSkills;
 import ru.atl.skills.ChooseEnchant;
 import ru.atl.skills.EnchantChoices;
 import ru.atl.skills.EnchantMath;
+import ru.atl.skills.EnchantProgress;
 import ru.atl.skills.ShelfState;
 
 @EventBusSubscriber(modid = AtlSkills.ID, value = Dist.CLIENT)
@@ -74,7 +75,9 @@ public final class EnchantPanel {
                     !allowed ? 0xFF373239 : hovered ? 0xFFAC6FA4 : 0xFFA99873);
             String name = Enchantment.getFullname(enchantment, 1).getString();
             int weight = enchantment.value().getWeight();
-            int neededShelves = EnchantMath.shelves(weight), levels = EnchantMath.levels(weight);
+            String id = enchantment.unwrapKey().map(key -> key.identifier().toString()).orElse("");
+            boolean armor = EnchantProgress.isArmor(s.getMenu().getSlot(0).getItem());
+            int neededShelves = EnchantMath.shelves(id, weight, armor), levels = EnchantMath.levels(id, weight, armor);
             g.text(font, font.plainSubstrByWidth(name, 67), x + 4, top + 5, allowed ? 0xFF271F1B : 0xFF817983, false);
             String shelfText = Integer.toString(neededShelves), levelText = Integer.toString(levels);
             g.text(font, shelfText, x + 89 - font.width(shelfText), top + 5, allowed ? 0xFFFFC14D : 0xFF877454, false);
@@ -93,10 +96,11 @@ public final class EnchantPanel {
         boolean allowed = EnchantChoices.eligible(s.getMenu().getSlot(0).getItem(), enchantment);
         int weight = enchantment.value().getWeight();
         String id = enchantment.unwrapKey().map(key -> key.identifier().toString()).orElse("");
+        boolean armor = EnchantProgress.isArmor(s.getMenu().getSlot(0).getItem());
         event.getGuiGraphics().setComponentTooltipForNextFrame(Minecraft.getInstance().font, List.of(
                 Enchantment.getFullname(enchantment, 1),
                 Component.literal(EnchantDescriptions.description(id)),
-                Component.literal("§eПолки: " + EnchantMath.shelves(weight) + " §aУровни: " + EnchantMath.levels(weight)),
+                Component.literal("§eПолки: " + EnchantMath.shelves(id, weight, armor) + " §aУровни: " + EnchantMath.levels(id, weight, armor)),
                 Component.literal(allowed ? "§7Стоимость: также 1 лазурит" : "§cКонфликтует с чарами предмета или уже установлено")
         ), event.getMouseX(), event.getMouseY());
     }

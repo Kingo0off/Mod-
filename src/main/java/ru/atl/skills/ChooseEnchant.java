@@ -49,8 +49,9 @@ public record ChooseEnchant(int containerId, String enchantment) implements Cust
             player.sendOverlayMessage(Component.literal("Это зачарование не подходит предмету").withStyle(ChatFormatting.RED));
             return;
         }
-        int neededLevels = EnchantMath.levels(holder.value().getWeight());
-        int neededShelves = EnchantMath.shelves(holder.value().getWeight());
+        boolean armor = EnchantProgress.isArmor(item);
+        int neededLevels = EnchantMath.levels(packet.enchantment(), holder.value().getWeight(), armor);
+        int neededShelves = EnchantMath.shelves(packet.enchantment(), holder.value().getWeight(), armor);
         if (!creative && ShelfState.count(menu) < neededShelves) {
             player.sendOverlayMessage(Component.literal("Нужно книжных полок: " + neededShelves).withStyle(ChatFormatting.RED));
             return;

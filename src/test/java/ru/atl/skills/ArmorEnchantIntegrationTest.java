@@ -29,6 +29,9 @@ class ArmorEnchantIntegrationTest {
         assertFalse(EnchantChoices.eligible(new ItemStack(Items.IRON_PICKAXE), protection));
         assertFalse(EnchantChoices.eligible(new ItemStack(Items.IRON_PICKAXE), registry.getOrThrow(Enchantments.SHARPNESS)));
     }
+    @Test void enchantingTableHasEnoughPositionsForTwentyFiveShelves() {
+        assertTrue(net.minecraft.world.level.block.EnchantingTableBlock.BOOKSHELF_OFFSETS.size() >= 25);
+    }
     @Test void enchantingMenuHasBookshelfAccessor() {
         assertTrue(ru.atl.skills.mixin.EnchantMenuAccess.class.isAssignableFrom(
                 net.minecraft.world.inventory.EnchantmentMenu.class));
