@@ -36,6 +36,20 @@ class ArmorEnchantIntegrationTest {
         assertTrue(ru.atl.skills.mixin.EnchantMenuAccess.class.isAssignableFrom(
                 net.minecraft.world.inventory.EnchantmentMenu.class));
     }
+    @Test void weaponProgressAndBarMoveTogether(MinecraftServer server) {
+        var sharpness = server.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.SHARPNESS);
+        var sword = new ItemStack(Items.IRON_SWORD);
+        sword.enchant(sharpness, 1);
+        int cost = EnchantProgress.cost(sword, 1, sharpness);
+        assertEquals(300, cost);
+        assertEquals(0, EnchantMath.barFill(EnchantProgress.experience(sword, sharpness), cost, 20));
+        for (int i = 0; i < 150; i++) EnchantProgress.use(sword);
+        assertEquals(150, EnchantProgress.experience(sword, sharpness));
+        assertEquals(10, EnchantMath.barFill(EnchantProgress.experience(sword, sharpness), cost, 20));
+        for (int i = 0; i < 150; i++) EnchantProgress.use(sword);
+        assertEquals(2, sword.getTagEnchantments().getLevel(sharpness));
+        assertEquals(0, EnchantProgress.experience(sword, sharpness));
+    }
     @Test void armorExperienceIsIndependentAndUpgradesAtTwenty(MinecraftServer server) {
         var protection = server.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.PROTECTION);
         var first = new ItemStack(Items.IRON_CHESTPLATE);
